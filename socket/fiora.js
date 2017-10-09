@@ -35,7 +35,7 @@ class Fiora {
               _id
           }
       }) => {
-          if (avatar.match(/^\w{1,10}$/)) {
+          if (avatar.match(/^\w{1,15}$/)) {
               avatar = `https://ooo.0o0.ooo/2016/12/03/584253eca7025.jpeg`;
           }
           let room;
