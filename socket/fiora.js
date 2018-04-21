@@ -1,152 +1,82 @@
+const IO = require('socket.io-client');
+
 class Fiora {
-  constructor() {
-      const socket = require('socket.io-client')('https://fiora.suisuijiang.com/');
-      this.socket = socket;
-      this.name = "fiora";
-      this.main = "fiora";
-      this.context = {};
-      this.log = (msg) => {
-        console.log(this.name + " " + msg);
-      }
+    constructor() {
+        this.name = 'fiora';
+        this.listers = {};
+        this.socket = new IO('https://fiora.suisuijiang.com', {
+            transportOptions: {
+                polling: {
+                    extraHeaders: {
+                        'origin': 'https://fiora.suisuijiang.com',
+                        'host': 'fiora.suisuijiang.com',
+                        'referer': 'https://fiora.suisuijiang.com/'
+                    }
+                }
+            }
+        });
 
-
-      socket.on('connect', (socket) => {
-          this.log("connect");
-      });
-      socket.on('disconnect', () => {
-          this.log("disconnect");
-          this.clearReconnect();
-          if (this.loginInfo && this.loginInfo.username) {
-              this.reconnectInterval = setInterval(() => {
-                  this.log("reconnect");
-                  this.login(this.loginInfo.username, this.loginInfo.password);
-              }, 5000);
-          }
-      });
-      socket.on('groupMessage', ({
-          type,
-          content,
-          createTime,
-          from: {
-              avatar,
-              username,
-          },
-          to: {
-              _id
-          }
-      }) => {
-          if (avatar.match(/^\w{1,15}$/)) {
-              avatar = `https://ooo.0o0.ooo/2016/12/03/584253eca7025.jpeg`;
-          }
-          let room;
-          for (const i in this.groupMap) {
-              if (this.groupMap[i] === _id) {
-                  room = i;
-                  break;
-              }
-          }
-          if (!room || !this.listeners[room]) {
-              return;
-          }
-          const message = {
-              type,
-              content,
-              avatar,
-              name: username,
-              time: (new Date(createTime)).getTime(),
-              room
-          }
-          this.listeners[room].forEach(function (cb) {
-              cb(message);
-          });
-          // this.send('fiora', message.type, message.content);
-      });
-      Object.assign(this, {
-          listeners: {},
-          groupMap: {},
-      });
-  }
-  clearReconnect() {
-      if (this.reconnectInterval) {
-          clearInterval(this.reconnectInterval);
-          this.reconnectInterval = 0;
-      }
-  }
-  login(username, password) {
-      this.loginInfo = {
-          username,
-          password
-      };
-      return new Promise((resolve, reject) => {
-          this.socket.emit("message", {
-              data: {
-                  username,
-                  password
-              },
-              method: "POST",
-              path: "/auth"
-          }, (result) => {
-              if (result.status === 201) {
-                  this.token = result.data.token;
-                  result.data.user.groups.forEach((group) => {
-                      this.groupMap[group.name] = group._id;
-                  });
-                  this.clearReconnect();
-                  resolve();
-              } else {
-                  reject(result.data);
-              }
-          });
-      });
-  }
-  send(room, type, content) {
-      return new Promise((resolve, reject) => {           
-          this.socket.emit("message", {
-              method: "POST",
-              path: "/groupMessage",
-              data: {
-                  content,
-                  token: this.token,
-                  linkmanId: this.groupMap[room],
-                  type,
-              },
-          }, ({
-              data,
-              status
-          }) => {
-              if (status === 201) {
-                  resolve();
-              } else {
-                  reject(data);
-              }
-          })
-      });
-  }
-  join(groupName) {
-      return new Promise((resolve, reject) => {
-          this.socket.emit("message", {
-              data: {
-                  groupName,
-                  token: this.token,
-              },
-              method: "POST",
-              path: "/group/members"
-          }, (result) => {
-              if (result.status === 201) {
-                  this.groupMap[groupName] = result.data._id;
-                  resolve();
-              } else {
-                  reject(result.data);
-              }
-          });
-      });
-
-  }
-  listen(room, cb) {
-      if (!this.listeners[room]) {
-          this.listeners[room] = [];
-      }
-      this.listeners[room].push(cb);
-  }
+        this.log('开始监听事件');
+        this.socket.on('connect', socket => {
+            this.log('connect');
+            this.login('robot10', '421we2fgv34897');
+        });
+        this.socket.on('disconnect', () => {
+            this.log('disconnect');
+        });
+        this.socket.on('message', (message) => {
+            if (this.listers[message.to]) {
+                this.listers[message.to](message);
+            }
+        });
+    }
+    log(...args) {
+        console.log(this.name, ...args);
+    }
+    login(username, password) {
+        return new Promise((resolve, reject) => {
+            this.socket.emit(
+                'login',
+                {
+                    username,
+                    password
+                },
+                (res) => {
+                    if (typeof res === 'string') {
+                        this.log('error', res);
+                        reject(res);
+                        return;
+                    }
+                    this.log('登录成功')
+                    resolve(res);
+                }
+            );
+        });
+    }
+    send(to, type, content) {
+        return new Promise((resolve, reject) => {
+            this.socket.emit(
+                'sendMessage',
+                {
+                    to,
+                    type,
+                    content,
+                },
+                res => {
+                    if (typeof res === 'string') {
+                        this.log('error', res);
+                        reject(res);
+                        return;
+                    }
+                    this.log('发送消息成功')
+                    resolve(res);
+                }
+            );
+        });
+    }
+    listen(linkmanId, cb) {
+        this.listers[linkmanId] = cb;
+        return this;
+    }
 }
 module.exports = Fiora;
