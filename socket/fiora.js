@@ -55,6 +55,13 @@ class Fiora {
     }
     send(to, type, content) {
         return new Promise((resolve, reject) => {
+            const types = ['text', 'image', 'code', 'url'];
+            if (types.indexOf(type) === -1) {
+                return reject('不支持的消息类型');
+            }
+            if (type === 'image' && !/width=[0-9]+&height=[0-9]+/.test(content)) {
+                return reject('图片消息需要在链接中带上高度和宽度');
+            }
             this.socket.emit(
                 'sendMessage',
                 {
