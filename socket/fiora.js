@@ -1,7 +1,7 @@
 const IO = require('socket.io-client');
 
 const groups = {
-    nami: '5adb43c154063970de326fcd'
+    nami: '5adb43c154063970de326fcd',
     fiora: '5adacdcfa109ce59da3e83d3'
 }
 
@@ -114,7 +114,7 @@ class Fiora {
      * @param {Function} cb 回调
      */
     listen(groupName, cb) {
-        const groupId = groups[groupName);]
+        const groupId = groups[groupName];
         this.listers[groupId] = cb;
         return this;
     }
