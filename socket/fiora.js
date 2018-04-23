@@ -38,6 +38,7 @@ class Fiora {
             this.log('disconnect');
         });
         this.socket.on('message', (message) => {
+            console.log('new message(fiora):', message.type, message.content);
             if (this.listers[message.to]) {
                 this.listers[message.to](message);
             }
@@ -76,12 +77,17 @@ class Fiora {
     }
     /**
      * 发送消息
-     * @param {String} to 群组id
+     * @param {String} to 群组名
      * @param {String} type 消息类型 ['text', 'image', 'code', 'url']
      * @param {String} content 消息内容, image消息需要链接上有width和height, code消息需要再开头用"@[编程语言]@"标明语言
      */
     send(to, type, content) {
         return new Promise((resolve, reject) => {
+            if (!groups[to]) {
+                reject(`${to} 群组不存在`);
+                return;
+            }
+
             const types = ['text', 'image', 'code', 'url'];
             if (types.indexOf(type) === -1) {
                 return reject('不支持的消息类型');
@@ -92,7 +98,7 @@ class Fiora {
             this.socket.emit(
                 'sendMessage',
                 {
-                    to,
+                    to: groups[to],
                     type,
                     content,
                 },

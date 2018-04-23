@@ -14,7 +14,7 @@ class NAMI {
         let disconnectCount = 0;
         this.socket = io('http://mdzzapp.com:3002');
         this.socket.on('newMessage', message => {
-            console.log('new message(nami): ', message.content);
+            console.log('new message(nami): ', message.type, message.content);
             this.emit('newMessage', message);
         });
         this.socket.on('privateMessage', message => {
